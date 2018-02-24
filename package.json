@@ -2,14 +2,21 @@
   "name": "nebulous-actual",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "nebulous-actual.js",
   "scripts": {
+    "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^9.4.6"
-  }
+    "@types/node": "^9.4.6",
+    "@types/webpack": "^3.8.8",
+    "awesome-typescript-loader": "^3.4.1",
+    "ts-loader": "^3.5.0",
+    "typescript": "^2.7.2",
+    "webpack": "^3.11.0"
+  },
+  "dependencies": {}
 }
