@@ -14,11 +14,11 @@ const server = http.createServer((req: any, res: any) =>
 
     if (fileName === "/")
     {
-        fileName = "index.html";
+        fileName = "dst/index.html";
     }
     else
     {
-        fileName = fileName.slice(1)
+        fileName = `dst/${fileName.slice(1)}`;
     }
 
     console.log(fileName);

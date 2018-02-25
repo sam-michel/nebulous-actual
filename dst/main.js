@@ -8,10 +8,10 @@ const server = http.createServer((req, res) => {
     let response = "";
     let fileName = url.parse(req.url).pathname; //.slice(1);
     if (fileName === "/") {
-        fileName = "index.html";
+        fileName = "dst/index.html";
     }
     else {
-        fileName = fileName.slice(1);
+        fileName = `dst/${fileName.slice(1)}`;
     }
     console.log(fileName);
     fs.readFile(fileName, 'utf8', (err, contents) => {
