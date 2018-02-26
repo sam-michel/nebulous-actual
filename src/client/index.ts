@@ -1,10 +1,14 @@
 import { Effect, EffectEnum } from './effects';
+import { WebSocketMessage } from './web-socket-message';
+import * as http from 'http';
 
 var canvas: HTMLCanvasElement;
 var canvasContext: CanvasRenderingContext2D;
 var input: HTMLInputElement;
+var inputHistory: HTMLUListElement;
 var footer: HTMLDivElement;
 var effectsQueue: Effect[][] = [];
+var socket: WebSocket;
 var maxFps = 60;
 var currentFps = 0;
 var currentFrameRate = 0;
@@ -36,6 +40,7 @@ function start()
     // also need Enter toggle for command input vs free text
     // ctrl + Back deletes all text, ctrl + x/c/v cuts, copies, and pastes text
     let form = document.createElement("form");
+    form.action = "command";
     form.style.background = "#000";
     form.style.padding = "3px";
     form.style.position = "fixed";
@@ -61,9 +66,10 @@ function start()
     input.style.position = "relative";
     input.style.border = "0px";
     input.style.borderWidth = "0";
+    input.style.outline = "none";
     input.style.cursor = "crosshair";
 
-    let inputHistory = document.createElement("ul");
+    inputHistory = document.createElement("ul");
     inputHistory.style.listStyleType = "none";
     inputHistory.style.margin = "0";
     inputHistory.style.padding = "0";
@@ -106,11 +112,41 @@ function start()
 
     document.body.appendChild(titleText);
     document.body.appendChild(canvas);
+    document.body.appendChild(inputHistory);
     document.body.appendChild(form);
     document.body.appendChild(footer);
 
     // scroll some init text when page loads
 
+
+    // handle form submissions:
+    form.onsubmit = function sendForm(event)
+    {
+        socket.send(JSON.stringify(new WebSocketMessage("command", input.value)));
+        input.value = '';
+        return false; // Prevent page from submitting.
+    }
+
+    // Create WebSocket connection.
+    socket = new WebSocket('ws://localhost:3001');
+
+    // Connection opened
+    socket.addEventListener('open', function (event)
+    {
+        socket.send('Hello Server!');
+    });
+
+    // Listen for messages
+    socket.addEventListener('message', function (event)
+    {
+        console.log('Message from server ', event.data);
+    });
+
+    socket.addEventListener('close', function (event)
+    {
+        console.log('close');
+        socket.close();
+    });
     runLoop();
 
 }
@@ -173,6 +209,7 @@ function mouseMove(mouseEvent: MouseEvent)
 {
     lastMouseX = mouseEvent.x;
     lastMouseY = mouseEvent.y;
+    //socket.send(JSON.stringify(new WebSocketMessage("mouseMove", `${lastMouseX},${lastMouseY}`)));
 }
 
 // Do it.
