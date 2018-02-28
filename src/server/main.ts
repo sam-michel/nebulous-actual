@@ -1,3 +1,8 @@
+/* Entry point for nodejs server.
+ * Build with tsc --watch
+ *
+ */
+
 const http = require('http');
 const fs = require('fs');
 const url = require('url');
