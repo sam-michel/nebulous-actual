@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc --watch",
     "pack": "webpack --watch",
-    "start": "node dst/main.js",
+    "start": "node dst/src/server/main.js",
     "startDev": "npm build && npm pack && npm start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

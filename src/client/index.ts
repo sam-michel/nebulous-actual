@@ -3,7 +3,6 @@
 
 import { Effect, EffectEnum } from './effects';
 import { WebSocketMessage } from './web-socket-message';
-import * as http from 'http';
 
 var canvas: HTMLCanvasElement;
 var canvasContext: CanvasRenderingContext2D;
