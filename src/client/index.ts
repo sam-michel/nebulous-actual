@@ -1,3 +1,6 @@
+// Entry point for client
+// pack with: webpack --watch
+
 import { Effect, EffectEnum } from './effects';
 import { WebSocketMessage } from './web-socket-message';
 import * as http from 'http';

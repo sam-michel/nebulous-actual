@@ -7,7 +7,14 @@
         "watch": true,
         "outDir": "./dst/",
         "jsx": "react",
-        "allowJs": true
+        "allowJs": true,
+        "baseUrl": ".",
+        "paths": {
+            "*": [
+                "node_modules/*",
+                "src/types/*"
+            ]
+        }
     },
     "include": [
         "./src/server/**/*"
