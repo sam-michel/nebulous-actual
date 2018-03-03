@@ -15,6 +15,11 @@ export class WsServer
             webSocket.on('message', (message) =>
             {
                 console.log(`received: ${message}`);
+                webSocket.send(`WebSocket connected on port ${port}`);
+                for (let currSocket in this.webSocketServer.clients)
+                {
+
+                }
             });
             webSocket.on('close', function closeHandler()
             {

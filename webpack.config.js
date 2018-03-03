@@ -1,8 +1,8 @@
 module.exports = {
-    entry: "./src/client/index.ts",
+    entry: "./code/client/index.ts",
     output: {
         filename: "nebulous-actual.js",
-        path: __dirname + "/dst"
+        path: __dirname + "/build"
     },
 
     // Enable sourcemaps for debugging webpack's output.

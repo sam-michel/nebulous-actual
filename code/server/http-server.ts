@@ -15,18 +15,30 @@ export class HttpServer
         this.server = http.createServer((req, res) =>
         {
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
-            let response = "";
             let reqPath = url.parse(req.url).pathname;
+            let fileName = undefined;
+            let response = "";
             console.log(reqPath);
-            if (!["/", "/nebulous-actual.js", "/favicon.ico"].some(x => x === reqPath))
+            switch (reqPath)
             {
-                response = "Gone coding."
-                res.statusCode = 410;
-                res.end(response);
+                case "/":
+                    fileName = "resource/index.html";
+                    break;
+                case "/favicon.ico":
+                    fileName = `resource${reqPath}`;
+                    break;
+                case "/nebulous-actual.js":
+                    fileName = `build${reqPath}`;
+                    break;
+                default:
+                    response = "Gone coding."
+                    res.statusCode = 410;
+                    res.end(response);
+                    break;
             }
-            else
+
+            if (fileName)
             {
-                let fileName = reqPath === "/" ? "dst/index.html" : `dst/${reqPath.slice(1)}`;
                 console.log(`reading file: ${fileName}`);
                 fs.readFile(fileName, 'utf8', (err: any, contents: any) =>
                 {
@@ -43,6 +55,7 @@ export class HttpServer
                     res.end(response);
                 });
             }
+
         });
 
         this.start();

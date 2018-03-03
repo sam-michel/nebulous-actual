@@ -4,19 +4,11 @@
         "target": "es6",
         "noImplicitAny": true,
         "sourceMap": true,
-        "watch": true,
-        "outDir": "./dst/",
+        "outDir": "./build/",
         "jsx": "react",
-        "allowJs": true,
-        "baseUrl": ".",
-        "paths": {
-            "*": [
-                "node_modules/*",
-                "src/types/*"
-            ]
-        }
+        "allowJs": true
     },
     "include": [
-        "./src/server/**/*"
+        "./code/server/**/*"
     ]
 }
