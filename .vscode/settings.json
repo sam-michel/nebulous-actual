@@ -1,0 +1,8 @@
+{
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/build": true
+    },
+    "typescript.referencesCodeLens.enabled": true,
+    "tslint.exclude": "**/node_modules/**/*"
+}

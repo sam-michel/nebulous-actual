@@ -1,7 +1,11 @@
 {
   "name": "nebulous-actual",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.2",
+  "description": "For giggles",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sam-michel/nebulous-actual"
+  },
   "main": "nebulous-actual.js",
   "scripts": {
     "build": "tsc && webpack",
@@ -17,6 +21,7 @@
     "@types/webpack": "^3.8.8",
     "@types/ws": "^4.0.1",
     "ts-loader": "^3.5.0",
+    "tslint": "^5.9.1",
     "typescript": "^2.7.2",
     "webpack": "^3.11.0"
   },
