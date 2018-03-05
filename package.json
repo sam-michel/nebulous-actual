@@ -9,7 +9,7 @@
   "main": "nebulous-actual.js",
   "scripts": {
     "build": "tsc && webpack",
-    "clean": "rm build/*",
+    "clean": "rm -r build/*",
     "start": "node build/main.js",
     "test": "echo \"Write some tests, asshole\" && exit 1"
   },

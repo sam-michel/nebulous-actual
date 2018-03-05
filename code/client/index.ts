@@ -2,7 +2,9 @@
 // pack with: webpack --watch
 
 import { Effect, EffectEnum } from './effects';
-import { WebSocketMessage } from './web-socket-message';
+import { Horizon } from './horizon';
+import { Terminal } from './terminal';
+import { WebSocketMessage } from '../server/web-socket-message';
 
 var canvas: HTMLCanvasElement;
 var canvasContext: CanvasRenderingContext2D;
@@ -33,9 +35,14 @@ function start()
     canvasContext = canvas.getContext("2d");
     canvas.innerHTML = "Your browser does not support the canvas element.";
     canvas.style.border = "0";
+    canvas.style.padding = "0";
     //canvas.style.border = "2px solid #c3c3c3";  // sand: #fff2c4, forest: #206020
     canvas.style.backgroundColor = "black";  // sand: #fff2c4, forest: #206020
+    canvas.style.position = "absolute";
+    canvas.style.top = "0px";
+    canvas.style.left = "0px"
     canvas.onmousemove = mouseMove;
+
 
     // create CLI
     // at the very least I need an input field and a command history
@@ -116,6 +123,7 @@ function start()
     document.body.appendChild(canvas);
     document.body.appendChild(inputHistory);
     document.body.appendChild(form);
+    //document.body.appendChild(new Terminal());
     document.body.appendChild(footer);
 
     // scroll some init text when page loads
@@ -135,7 +143,7 @@ function start()
     // Connection opened
     socket.addEventListener('open', function (event)
     {
-        socket.send('Hello Server!');
+        socket.send(JSON.stringify(new WebSocketMessage("init", "Greetings!")));
     });
 
     // Listen for messages
@@ -150,14 +158,17 @@ function start()
         socket.close();
     });
     runLoop();
-
 }
 
 function runLoop()
 {
     // do shit
+    //resize();
 
     // check draw queue (shapes, lines, glyphs, etc.)
+    //let horizon = new Horizon(canvas);
+    //horizon.draw();
+    //horizon.drawStars(canvas);
 
     // update HUD
     // set refresh rate for HUD -- doesn't need to be every frame
@@ -197,8 +208,12 @@ function runLoop()
 
 function resize()
 {
-    canvas.width = window.innerWidth - 20;
-    canvas.height = window.innerHeight - 25;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    // draw horizon
+    let horizon = new Horizon(canvas);
+    horizon.draw();
+    //horizon.drawStars(canvas);
 }
 
 function contextMenu()

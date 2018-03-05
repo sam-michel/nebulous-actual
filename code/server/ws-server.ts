@@ -1,3 +1,4 @@
+import { WebSocketMessage } from './web-socket-message';
 import * as util from "util";
 import * as ws from "ws";
 
@@ -12,9 +13,10 @@ export class WsServer
         this.webSocketServer.on('connection', (webSocket) =>
         {
             console.log('websocket connection established');
-            webSocket.on('message', (message) =>
+            webSocket.on('message', (messageString) =>
             {
-                console.log(`received: ${message}`);
+                let message: WebSocketMessage = JSON.parse(messageString.toString());
+                console.log(`received: ${message.message}`);
                 webSocket.send(`WebSocket connected on port ${port}`);
                 for (let currSocket in this.webSocketServer.clients)
                 {
