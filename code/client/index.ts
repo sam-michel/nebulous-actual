@@ -6,230 +6,166 @@ import { Horizon } from './horizon';
 import { Terminal } from './terminal';
 import { WebSocketMessage } from '../server/web-socket-message';
 
-var canvas: HTMLCanvasElement;
-var canvasContext: CanvasRenderingContext2D;
-var input: HTMLInputElement;
-var inputHistory: HTMLUListElement;
-var footer: HTMLDivElement;
-var effectsQueue: Effect[][] = [];
-var socket: WebSocket;
-var maxFps = 60;
-var currentFps = 0;
-var currentFrameRate = 0;
-var frameCount = 0;
-var lastFrameTime = 0;
-var lastFrameCount = 0;
-var startTime = 0;
-var lastMouseX = 0;
-var lastMouseY = 0;
-
-function start()
+export class Application
 {
-    // set body values
-    document.body.style.backgroundColor = "#000000";
-    document.body.style.cursor = "crosshair";
-    document.body.style.font = "13px Helvetica, Arial";
+    canvas: HTMLCanvasElement;
+    canvasContext: CanvasRenderingContext2D;
+    effectsQueue: Effect[][] = [];
+    focusTarget: HTMLElement;
+    footer: HTMLDivElement;
+    terminal: Terminal;
+    maxFps: number = 60;
+    currentFps: number = 0;
+    currentFrameRate: number = 0;
+    frameCount: number = 0;
+    lastFrameTime: number = 0;
+    lastFrameCount: number = 0;
+    startTime: number = 0;
+    lastMouseX: number = 0;
+    lastMouseY: number = 0;
 
-    // create canvas
-    canvas = document.createElement("canvas");
-    canvasContext = canvas.getContext("2d");
-    canvas.innerHTML = "Your browser does not support the canvas element.";
-    canvas.style.border = "0";
-    canvas.style.padding = "0";
-    //canvas.style.border = "2px solid #c3c3c3";  // sand: #fff2c4, forest: #206020
-    canvas.style.backgroundColor = "black";  // sand: #fff2c4, forest: #206020
-    canvas.style.position = "absolute";
-    canvas.style.top = "0px";
-    canvas.style.left = "0px"
-    canvas.onmousemove = mouseMove;
-
-
-    // create CLI
-    // at the very least I need an input field and a command history
-    // also need Enter toggle for command input vs free text
-    // ctrl + Back deletes all text, ctrl + x/c/v cuts, copies, and pastes text
-    let form = document.createElement("form");
-    form.action = "command";
-    form.style.background = "#000";
-    form.style.padding = "3px";
-    form.style.position = "fixed";
-    form.style.bottom = "0";
-    form.style.width = "100%";
-
-    let div = document.createElement("div");
-
-    let prompt = document.createElement("span");
-    prompt.innerText = "> "
-    prompt.style.fontFamily = "courier";
-    prompt.style.backgroundColor = "#000";
-    prompt.style.color = "#00ff00";
-    prompt.style.width = "1%";
-    prompt.style.whiteSpace = "nowrap";
-
-    input = document.createElement("input");
-    input.autocomplete = "off";
-    input.style.width = "90%";
-    input.style.fontFamily = "courier";
-    input.style.backgroundColor = "#000";
-    input.style.color = "#00ff00";
-    input.style.position = "relative";
-    input.style.border = "0px";
-    input.style.borderWidth = "0";
-    input.style.outline = "none";
-    input.style.cursor = "crosshair";
-
-    inputHistory = document.createElement("ul");
-    inputHistory.style.listStyleType = "none";
-    inputHistory.style.margin = "0";
-    inputHistory.style.padding = "0";
-
-    form.appendChild(div);
-    div.appendChild(prompt);
-    div.appendChild(input);
-
-    input.focus();
-    resize();
-
-    // create HUD
-    // display actual frame rate vs. max frame rate
-    // display frame count
-    footer = document.createElement("div");
-    footer.style.color = "#00aa00";
-    footer.style.background = "#000";
-    footer.style.fontSize = "8px"
-    footer.style.padding = "2px";
-    footer.style.width = "5%";
-    footer.style.position = "fixed";
-    footer.style.bottom = "0";
-    footer.style.right = "0";
-    footer.style.textAlign = "right";
-    footer.style.whiteSpace = "nowrap";
-    footer.innerText = "test footer";
-
-    // create mini-map
-    // refresh rate for mini-map will be independently controlled
-
-    // fade some text in
-    let titleText = document.createElement("label");
-    titleText.innerText = "nebulous / actual"
-    titleText.style.fontSize = "48pt";
-    titleText.style.color = "#00ff00";
-    titleText.style.position = "absolute";
-    titleText.style.top = "150px"; // center this vertically
-    titleText.style.left = "150px"; // center this horizontally
-    effectsQueue.push([new Effect(titleText, EffectEnum.fadeIn, 180), new Effect(titleText, EffectEnum.fadeOut, 180)]);
-
-    document.body.appendChild(titleText);
-    document.body.appendChild(canvas);
-    document.body.appendChild(inputHistory);
-    document.body.appendChild(form);
-    //document.body.appendChild(new Terminal());
-    document.body.appendChild(footer);
-
-    // scroll some init text when page loads
-
-
-    // handle form submissions:
-    form.onsubmit = function sendForm(event)
+    constructor()
     {
-        socket.send(JSON.stringify(new WebSocketMessage("command", input.value)));
-        input.value = '';
-        return false; // Prevent page from submitting.
+        // set body values
+        document.body.style.backgroundColor = "#000000";
+        document.body.style.cursor = "crosshair";
+        document.body.style.font = "13px Helvetica, Arial";
+
+        // create canvas
+        this.canvas = document.createElement("canvas");
+        this.canvasContext = this.canvas.getContext("2d");
+        this.canvas.innerHTML = "Your browser does not support the canvas element.";
+        this.canvas.style.border = "0";
+        this.canvas.style.padding = "0";
+        this.canvas.style.backgroundColor = "black";  // sand: #fff2c4, forest: #206020
+        this.canvas.style.position = "absolute";
+        this.canvas.style.top = "0px";
+        this.canvas.style.left = "0px"
+        this.canvas.onmousemove = this.mouseMove;
+        document.body.appendChild(this.canvas);
+
+        this.canvas.width = 2000; // was window.innerWidth
+        this.canvas.height = 2000; // was window.innerHeight
+        // draw horizon
+        let horizon = new Horizon(this.canvas);
+        horizon.draw();
+
+
+        // display title
+        let titleText = document.createElement("label");
+        titleText.innerText = "nebulous / actual"
+        titleText.style.fontSize = "48pt";
+        titleText.style.color = "#00ff00";
+        titleText.style.position = "absolute";
+        titleText.style.top = "150px"; // center this vertically
+        titleText.style.left = "150px"; // center this horizontally
+        this.effectsQueue.push([
+            new Effect(titleText, EffectEnum.fadeIn, 180),
+            new Effect(titleText, EffectEnum.fadeOut, 180),
+            new Effect(titleText, EffectEnum.makeInvisible)
+        ]);
+        this.effectsQueue.push([new Effect(titleText, EffectEnum.moveTo, 360, { x: 300, y: 300 })]);
+        document.body.appendChild(titleText);
+
+        this.terminal = new Terminal(this);
+        this.focusTarget = this.terminal.input;
+
+        // create HUD
+        // display actual frame rate vs. max frame rate
+        // display frame count
+        this.footer = document.createElement("div");
+        this.footer.style.color = "#00aa00";
+        this.footer.style.background = "#000";
+        this.footer.style.fontSize = "8px"
+        this.footer.style.padding = "2px";
+        this.footer.style.width = "5%";
+        this.footer.style.position = "fixed";
+        this.footer.style.bottom = "0";
+        this.footer.style.right = "0";
+        this.footer.style.textAlign = "right";
+        this.footer.style.whiteSpace = "nowrap";
+        this.footer.innerText = "test footer";
+        document.body.appendChild(this.footer);
+
+        // scroll some init text when page loads...
+
+        window.onresize = this.resize;
+        window.oncontextmenu = this.contextMenu;
     }
 
-    // Create WebSocket connection.
-    socket = new WebSocket('ws://localhost:3001');
-
-    // Connection opened
-    socket.addEventListener('open', function (event)
+    start()
     {
-        socket.send(JSON.stringify(new WebSocketMessage("init", "Greetings!")));
-    });
-
-    // Listen for messages
-    socket.addEventListener('message', function (event)
-    {
-        console.log('Message from server ', event.data);
-    });
-
-    socket.addEventListener('close', function (event)
-    {
-        console.log('close');
-        socket.close();
-    });
-    runLoop();
-}
-
-function runLoop()
-{
-    // do shit
-    //resize();
-
-    // check draw queue (shapes, lines, glyphs, etc.)
-    //let horizon = new Horizon(canvas);
-    //horizon.draw();
-    //horizon.drawStars(canvas);
-
-    // update HUD
-    // set refresh rate for HUD -- doesn't need to be every frame
-    let timeStampInMs = window.performance && window.performance.now && window.performance.timing && window.performance.timing.navigationStart ? window.performance.now() + window.performance.timing.navigationStart : Date.now();
-    if (startTime === 0)
-    {
-        startTime = timeStampInMs;
+        //this.resize(); // this does the initial paint of the horizon...
+        setTimeout(this.runLoop, 1000 / this.maxFps);
     }
-    if (0 === frameCount % 30)
-    {
-        currentFps = Math.floor(1000 * (frameCount - lastFrameCount) / (timeStampInMs - lastFrameTime));
-    }
-    //footer.innerText = `${frameCount} ${Math.floor(timeStampInMs - startTime)} ${fps}/${maxFps}`;
-    footer.innerText = `${lastMouseX} ${lastMouseY} ${currentFps}/${maxFps}`;
-    lastFrameTime = timeStampInMs;
-    lastFrameCount = frameCount;
 
-    // check effects queue
-    let newQueue: Effect[][] = [];
-    effectsQueue.forEach(effectChain =>
+    runLoop()
     {
-        let effect = effectChain.shift();
-        if (effect.advance())
+        // do shit
+        //resize();
+
+        // check draw queue (shapes, lines, glyphs, etc.)
+        //let horizon = new Horizon(canvas);
+        //horizon.draw();
+        //horizon.drawStars(canvas);
+
+        // update HUD
+        // set refresh rate for HUD -- doesn't need to be every frame
+        let timeStampInMs = window.performance && window.performance.now && window.performance.timing && window.performance.timing.navigationStart ? window.performance.now() + window.performance.timing.navigationStart : Date.now();
+        if (app.startTime === 0)
         {
-            effectChain.unshift(effect);
+            app.startTime = timeStampInMs;
         }
-        if (0 < effectChain.length)
+        if (0 === app.frameCount % 30)
         {
-            newQueue.push(effectChain);
+            app.currentFps = Math.floor(1000 * (app.frameCount - app.lastFrameCount) / (timeStampInMs - app.lastFrameTime));
         }
-    });
-    effectsQueue = newQueue;
-    setTimeout(runLoop, 1000 / maxFps);
-    input.focus();
-    frameCount++;
+        //footer.innerText = `${frameCount} ${Math.floor(timeStampInMs - startTime)} ${fps}/${maxFps}`;
+        app.footer.innerText = `${app.lastMouseX} ${app.lastMouseY} ${app.currentFps}/${app.maxFps}`;
+        app.lastFrameTime = timeStampInMs;
+        app.lastFrameCount = app.frameCount;
+
+        // check effects queue
+        let newQueue: Effect[][] = [];
+        app.effectsQueue.forEach(effectChain =>
+        {
+            let effect = effectChain.shift();
+            if (effect.advance())
+            {
+                effectChain.unshift(effect);
+            }
+            if (0 < effectChain.length)
+            {
+                newQueue.push(effectChain);
+            }
+        });
+        app.effectsQueue = newQueue;
+        setTimeout(app.runLoop, 1000 / app.maxFps);
+        app.focusTarget.focus();
+        app.frameCount++;
+    }
+
+    resize()
+    {
+        //app.canvas.width = window.innerWidth;
+        //app.canvas.height = window.innerHeight;
+        //let horizon = new Horizon(app.canvas);
+        //horizon.draw();
+    }
+
+    contextMenu()
+    {
+        // draw my own context menu!
+        return false;
+    }
+
+    mouseMove(mouseEvent: MouseEvent)
+    {
+        app.lastMouseX = mouseEvent.x;
+        app.lastMouseY = mouseEvent.y;
+        //socket.send(JSON.stringify(new WebSocketMessage("mouseMove", `${lastMouseX},${lastMouseY}`)));
+    }
 }
 
-function resize()
-{
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    // draw horizon
-    let horizon = new Horizon(canvas);
-    horizon.draw();
-    //horizon.drawStars(canvas);
-}
-
-function contextMenu()
-{
-    // draw my own context menu!
-    return false;
-}
-
-function mouseMove(mouseEvent: MouseEvent)
-{
-    lastMouseX = mouseEvent.x;
-    lastMouseY = mouseEvent.y;
-    //socket.send(JSON.stringify(new WebSocketMessage("mouseMove", `${lastMouseX},${lastMouseY}`)));
-}
-
-// Do it.
-window.onresize = resize;
-window.oncontextmenu = contextMenu;
-start();
+var app = new Application();
+app.start();

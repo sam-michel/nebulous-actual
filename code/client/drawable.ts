@@ -9,3 +9,9 @@ export class Drawable
         this.canvasContext = canvas.getContext("2d");
     }
 }
+
+export class Point
+{
+    x: number;
+    y: number;
+}
