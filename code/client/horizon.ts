@@ -6,12 +6,14 @@ import { Drawable } from './drawable';
 export class Horizon extends Drawable
 {
     skyColor: string = "#f00"; // default = "#f00", "#3dd" = day blue
+    time: number; // minute in the day 0 - 1440
+    //time: Date;
 
     /* Some of these properties might be interesting... most are crap:
     landColor: string = "black";
     landSpeed: number; // moving horizon could be cool...
     skySpeed: number;
-    time: number; // minute in the day 0 - 1440 */
+     */
 
     draw()
     {
@@ -24,13 +26,13 @@ export class Horizon extends Drawable
     private drawAtmosphere()
     {
         let atmosphereBrightness = .45; // 0 - 1, .6 default
-        let gradient = this.canvasContext.createLinearGradient(0, window.innerHeight, 0, 0);
+        let gradient = this.canvasContext.createLinearGradient(0, this.canvas.height, 0, this.canvas.height - window.innerHeight);
         gradient.addColorStop(0, this.skyColor);
         gradient.addColorStop(Math.max(0, atmosphereBrightness - .2), "rgba(255,0,0,.5)");
         gradient.addColorStop(Math.min(1, atmosphereBrightness + -.1), "rgba(255,153,0,.3)");
         gradient.addColorStop(Math.min(1, atmosphereBrightness + .2), "rgba(0,0,0,0)"); // "rgba(48,180,240,.5)" = sky blue
         this.canvasContext.fillStyle = gradient;
-        this.canvasContext.fillRect(0, 0, window.innerWidth, window.innerHeight);
+        this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     private drawLand()
@@ -45,10 +47,11 @@ export class Horizon extends Drawable
         let xMaxDelta = 20; // 20
         let yMaxDelta = 5; // 5
 
+        let screenOffset = this.canvas.height - window.innerHeight;
         let x = -10;
-        let y = yOffset * window.innerHeight;
-        let minY = (yOffset - yDeviation) * window.innerHeight;
-        let maxY = (yOffset + yDeviation) * window.innerHeight;
+        let y = screenOffset + yOffset * window.innerHeight;
+        let minY = screenOffset + (yOffset - yDeviation) * window.innerHeight;
+        let maxY = screenOffset + (yOffset + yDeviation) * window.innerHeight;
 
         this.canvasContext.beginPath();
         this.canvasContext.moveTo(x, y);
@@ -85,6 +88,7 @@ export class Horizon extends Drawable
 
     private drawStars()
     {
+        // Stars should be drawn over a short duration so as not to block page load
         // Stars need to be drawn on a background canvas so they don't get redrawn when foreground elements change (atmosphere light,
         // land line movement, twinkling stars, etc).
         // To allow for star movement I actually need two background canvases
@@ -93,17 +97,17 @@ export class Horizon extends Drawable
         //   - star movement will only be up/down for now (what about panning view...?)
 
         // I want additional canvas layers to draw moving "stars", meteor showers, etc.
-        let starDensity = 1;
+        let starDensity = 1; // 4
         let starSize = .5;
         let redShift = .5;
         let greenShift = .5;
         let blueShift = .5;
-        let brightness = 0;
-        this.drawStarLayer(this.canvas, redShift, greenShift, blueShift, brightness, starSize, starDensity * 20000);
-        this.drawStarLayer(this.canvas, .1 + redShift, .1 + greenShift, .1 + blueShift, .1 + brightness, 2 * starSize, starDensity * 1000);
-        this.drawStarLayer(this.canvas, .2 + redShift, .2 + greenShift, .2 + blueShift, .2 + brightness, 3 * starSize, starDensity * 100);
-        this.drawStarLayer(this.canvas, .3 + redShift, .3 + greenShift, .3 + blueShift, .3 + brightness, 4 * starSize, starDensity * 10);
-        this.drawStarLayer(this.canvas, .4 + redShift, .4 + greenShift, .4 + blueShift, .4 + brightness, 5 * starSize, starDensity * 1);
+        let brightness = -.2;
+        this.drawStarLayer(this.canvas, redShift, greenShift, blueShift, brightness - .2, starSize, starDensity * 50000);
+        this.drawStarLayer(this.canvas, .1 + redShift, .1 + greenShift, .1 + blueShift, brightness + .0, 2 * starSize, starDensity * 2500);
+        this.drawStarLayer(this.canvas, .2 + redShift, .2 + greenShift, .2 + blueShift, brightness + .2, 3 * starSize, starDensity * 100);
+        this.drawStarLayer(this.canvas, .3 + redShift, .3 + greenShift, .3 + blueShift, brightness + .3, 4 * starSize, starDensity * 10);
+        this.drawStarLayer(this.canvas, .4 + redShift, .4 + greenShift, .4 + blueShift, brightness + .4, 5 * starSize, starDensity * 1);
         //this.drawStarLayer(this.canvas, redShift, greenShift, blueShift, 1, 10 * starSize, 1); // draw a moon, need a radial gradient for this...
     }
 

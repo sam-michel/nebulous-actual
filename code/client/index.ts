@@ -39,17 +39,17 @@ export class Application
         this.canvas.style.padding = "0";
         this.canvas.style.backgroundColor = "black";  // sand: #fff2c4, forest: #206020
         this.canvas.style.position = "absolute";
-        this.canvas.style.top = "0px";
+        this.canvas.style.bottom = "0px";
         this.canvas.style.left = "0px"
-        this.canvas.onmousemove = this.mouseMove;
-        document.body.appendChild(this.canvas);
-
         this.canvas.width = 2000; // was window.innerWidth
         this.canvas.height = 2000; // was window.innerHeight
+        this.canvas.onmousemove = this.mouseMove;
+        this.canvas.onkeypress = this.keyPress;
+        document.body.appendChild(this.canvas);
+
         // draw horizon
         let horizon = new Horizon(this.canvas);
         horizon.draw();
-
 
         // display title
         let titleText = document.createElement("label");
@@ -59,12 +59,14 @@ export class Application
         titleText.style.position = "absolute";
         titleText.style.top = "150px"; // center this vertically
         titleText.style.left = "150px"; // center this horizontally
+        //titleText.style.display = "none";
         this.effectsQueue.push([
-            new Effect(titleText, EffectEnum.fadeIn, 180),
-            new Effect(titleText, EffectEnum.fadeOut, 180),
+            new Effect(titleText, EffectEnum.makeVisible),
+            new Effect(titleText, EffectEnum.fadeIn, 100),
+            new Effect(titleText, EffectEnum.fadeOut, 100),
             new Effect(titleText, EffectEnum.makeInvisible)
         ]);
-        this.effectsQueue.push([new Effect(titleText, EffectEnum.moveTo, 360, { x: 300, y: 300 })]);
+        this.effectsQueue.push([new Effect(titleText, EffectEnum.moveTo, 200, 0, { x: 300, y: 300 })]);
         document.body.appendChild(titleText);
 
         this.terminal = new Terminal(this);
@@ -157,6 +159,17 @@ export class Application
     {
         // draw my own context menu!
         return false;
+    }
+
+    keyPress(k: KeyboardEvent)
+    {
+        console.log(`{key pressed on canvas: ${k.key}}`)
+        if (k.key === "Enter")
+        {
+            //app.focusTarget = app.terminal.input;
+            //app.effectsQueue.push([new Effect(app.terminal.form, EffectEnum.moveTo, 20, { x: 0, y: 0 })]);
+
+        }
     }
 
     mouseMove(mouseEvent: MouseEvent)

@@ -4,49 +4,132 @@ export class Effect
 {
     target: HTMLElement;
     effect: EffectEnum;
-    lifeMax: number; // initial life
+    lifeInit: number; // initial life/duration
     lifeCurrent: number; // current time left
-    origin: Point;
-    destination: Point;
+    countInit: number; // initial count
+    countCurrent: number; // current count left
+    origin: Point; // starting point for moveTo()
+    destination: Point; // ending point for moveTo()
 
-    constructor(target: HTMLElement, effect: EffectEnum, lifeMax: number = 0, destination: Point = undefined)
+    constructor(target: HTMLElement, effect: EffectEnum, life: number = 0, count: number = 0, destination: Point = undefined)
     {
         this.target = target;
         this.effect = effect;
-        this.lifeMax = lifeMax;
-        this.lifeCurrent = lifeMax;
-        this.origin = { x: parseInt(target.style.left), y: parseInt(target.style.top) }
+        this.lifeInit = life;
+        this.lifeCurrent = life;
+        this.countInit = count;
+        this.countCurrent = count;
         this.destination = destination;
+        this.origin = this.getOrigin(destination, target);
     }
 
     advance(): boolean
     {
-        let opacity;
+        let scale1 = this.lifeCurrent / this.lifeInit;
+        let scale2 = 1 - this.lifeCurrent / this.lifeInit;
         switch (this.effect)
         {
             case EffectEnum.blink:
+                // how many times to blink (off + on)
+                // duration over which to blink
+
+                // if it's time to transition...
+                let currentCount = Math.floor(scale1 * this.countInit)
+                if (currentCount < this.countCurrent)
+                {
+                    if (1 === this.countCurrent % 2)
+                    {
+                        // blink off
+                        this.target.style.display = "none";
+                    }
+                    else
+                    {
+                        // bink on
+                        this.target.style.display = "inline";
+                    }
+
+                    this.countCurrent--;
+                }
+
+                if (this.lifeCurrent === 1)
+                {
+                    this.target.style.display = "inline";
+                }
+
                 break;
             case EffectEnum.fadeIn:
-                opacity = 1 - this.lifeCurrent / this.lifeMax;
-                this.target.style.opacity = `${opacity}`;
+                this.target.style.opacity = `${scale2}`;
                 break;
             case EffectEnum.fadeOut:
-                opacity = this.lifeCurrent / this.lifeMax;
-                this.target.style.opacity = `${opacity}`;
+                this.target.style.opacity = `${scale1}`;
                 break;
             case EffectEnum.makeInvisible:
                 this.target.style.display = "none";
                 break;
+            case EffectEnum.makeVisible:
+                this.target.style.display = "inline";
+                break;
             case EffectEnum.moveTo:
-                let scale = 1 - this.lifeCurrent / this.lifeMax;
-                let dx = scale * (this.destination.x - this.origin.x); // delta x
-                let dy = scale * (this.destination.y - this.origin.y); // delta y
-                this.target.style.left = `${this.origin.x + Math.ceil(dx)}px`;
-                this.target.style.top = `${this.origin.y + Math.ceil(dy)}px`;
+                // target.style top/bottom, left/right values must be set for this to work
+                let dx = scale2 * (this.destination.x - this.origin.x); // delta x
+                let dy = scale2 * (this.destination.y - this.origin.y); // delta y
+
+                if (this.target.style.left !== "")
+                {
+                    this.target.style.left = `${this.origin.x + Math.ceil(dx)}px`;
+                }
+                else if (this.target.style.right !== "")
+                {
+                    this.target.style.right = `${this.origin.x + Math.ceil(dx)}px`;
+                }
+
+                if (this.target.style.top !== "")
+                {
+                    this.target.style.top = `${this.origin.y + Math.ceil(dy)}px`;
+                }
+                else if (this.target.style.bottom !== "")
+                {
+                    this.target.style.bottom = `${this.origin.y + Math.ceil(dy)}px`;
+                }
                 break;
         }
 
         return 0 < this.lifeCurrent--;
+    }
+
+    getOrigin(destination: Point, target: HTMLElement): Point
+    {
+        if (destination)
+        {
+            this.destination = destination;
+
+            // Use whatever positional values are set:
+            let x, y: number;
+
+            if (this.target.style.left !== "")
+            {
+                x = parseInt(target.style.left)
+            }
+            else if (this.target.style.right !== "")
+            {
+                x = parseInt(target.style.right)
+            }
+
+            if (this.target.style.top !== "")
+            {
+                y = parseInt(target.style.top)
+            }
+            else if (this.target.style.bottom !== "")
+            {
+                y = parseInt(target.style.bottom)
+            }
+
+            return { x: x, y: y };
+        }
+        else
+        {
+            return undefined;
+        }
     }
 
 }
@@ -56,6 +139,7 @@ export enum EffectEnum
     blink,
     fadeIn,
     fadeOut,
+    makeVisible,
     makeInvisible,
     moveTo
 }
