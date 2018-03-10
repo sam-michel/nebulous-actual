@@ -1,4 +1,4 @@
-import { Point } from "./drawable"
+import { Point } from "./horizon/drawable"
 
 export class Effect
 {
@@ -30,24 +30,17 @@ export class Effect
         switch (this.effect)
         {
             case EffectEnum.blink:
-                // how many times to blink (off + on)
-                // duration over which to blink
-
-                // if it's time to transition...
                 let currentCount = Math.floor(scale1 * this.countInit)
                 if (currentCount < this.countCurrent)
                 {
                     if (1 === this.countCurrent % 2)
                     {
-                        // blink off
                         this.target.style.display = "none";
                     }
                     else
                     {
-                        // bink on
                         this.target.style.display = "inline";
                     }
-
                     this.countCurrent--;
                 }
 
@@ -93,7 +86,6 @@ export class Effect
                 }
                 break;
         }
-
         return 0 < this.lifeCurrent--;
     }
 
@@ -131,7 +123,6 @@ export class Effect
             return undefined;
         }
     }
-
 }
 
 export enum EffectEnum

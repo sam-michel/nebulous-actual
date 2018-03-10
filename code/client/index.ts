@@ -1,28 +1,29 @@
-// Entry point for client
-// pack with: webpack --watch
+/*************************************************************************************************\
+ * Whatever I would write in here should just as well go in the readme.md
+\*************************************************************************************************/
 
 import { Effect, EffectEnum } from './effects';
-import { Horizon } from './horizon';
+import { Horizon } from './horizon/horizon';
 import { Terminal } from './terminal';
 import { WebSocketMessage } from '../server/web-socket-message';
 
+/*************************************************************************************************\
+ * Application serves as the entry point for the client. It is primarily responsible for composing
+ * the necessary elements and routing user input.
+\*************************************************************************************************/
 export class Application
 {
-    canvas: HTMLCanvasElement;
-    canvasContext: CanvasRenderingContext2D;
     effectsQueue: Effect[][] = [];
     focusTarget: HTMLElement;
     footer: HTMLDivElement;
     terminal: Terminal;
     maxFps: number = 60;
     currentFps: number = 0;
-    currentFrameRate: number = 0;
     frameCount: number = 0;
     lastFrameTime: number = 0;
     lastFrameCount: number = 0;
     startTime: number = 0;
-    lastMouseX: number = 0;
-    lastMouseY: number = 0;
+    horizon: Horizon;
 
     constructor()
     {
@@ -31,42 +32,29 @@ export class Application
         document.body.style.cursor = "crosshair";
         document.body.style.font = "13px Helvetica, Arial";
 
-        // create canvas
-        this.canvas = document.createElement("canvas");
-        this.canvasContext = this.canvas.getContext("2d");
-        this.canvas.innerHTML = "Your browser does not support the canvas element.";
-        this.canvas.style.border = "0";
-        this.canvas.style.padding = "0";
-        this.canvas.style.backgroundColor = "black";  // sand: #fff2c4, forest: #206020
-        this.canvas.style.position = "absolute";
-        this.canvas.style.bottom = "0px";
-        this.canvas.style.left = "0px"
-        this.canvas.width = 2000; // was window.innerWidth
-        this.canvas.height = 2000; // was window.innerHeight
-        this.canvas.onmousemove = this.mouseMove;
-        this.canvas.onkeypress = this.keyPress;
-        document.body.appendChild(this.canvas);
-
         // draw horizon
-        let horizon = new Horizon(this.canvas);
-        horizon.draw();
+        this.horizon = new Horizon();
+        this.horizon.draw();
 
         // display title
         let titleText = document.createElement("label");
         titleText.innerText = "nebulous / actual"
         titleText.style.fontSize = "48pt";
-        titleText.style.color = "#00ff00";
+        titleText.style.color = "#009900";
         titleText.style.position = "absolute";
-        titleText.style.top = "150px"; // center this vertically
-        titleText.style.left = "150px"; // center this horizontally
-        //titleText.style.display = "none";
+        titleText.style.top = "100px"; // center this vertically
+        titleText.style.left = "100px"; // center this horizontally
+        titleText.style.display = "none";
+        let fadeDuration = 150;
         this.effectsQueue.push([
-            new Effect(titleText, EffectEnum.makeVisible),
-            new Effect(titleText, EffectEnum.fadeIn, 100),
-            new Effect(titleText, EffectEnum.fadeOut, 100),
+            new Effect(titleText, EffectEnum.fadeIn, fadeDuration),
+            new Effect(titleText, EffectEnum.fadeOut, fadeDuration),
             new Effect(titleText, EffectEnum.makeInvisible)
         ]);
-        this.effectsQueue.push([new Effect(titleText, EffectEnum.moveTo, 200, 0, { x: 300, y: 300 })]);
+        this.effectsQueue.push([
+            new Effect(titleText, EffectEnum.makeVisible),
+            new Effect(titleText, EffectEnum.moveTo, 2 * fadeDuration, 0, { x: window.innerWidth / 2, y: window.innerHeight / 2 })
+        ]);
         document.body.appendChild(titleText);
 
         this.terminal = new Terminal(this);
@@ -92,25 +80,13 @@ export class Application
         // scroll some init text when page loads...
 
         window.onresize = this.resize;
+        window.addEventListener('keydown', this.terminal.onKeyboardEvent);
+        window.addEventListener('keypress', this.terminal.onKeyboardEvent);
         window.oncontextmenu = this.contextMenu;
-    }
-
-    start()
-    {
-        //this.resize(); // this does the initial paint of the horizon...
-        setTimeout(this.runLoop, 1000 / this.maxFps);
     }
 
     runLoop()
     {
-        // do shit
-        //resize();
-
-        // check draw queue (shapes, lines, glyphs, etc.)
-        //let horizon = new Horizon(canvas);
-        //horizon.draw();
-        //horizon.drawStars(canvas);
-
         // update HUD
         // set refresh rate for HUD -- doesn't need to be every frame
         let timeStampInMs = window.performance && window.performance.now && window.performance.timing && window.performance.timing.navigationStart ? window.performance.now() + window.performance.timing.navigationStart : Date.now();
@@ -122,12 +98,19 @@ export class Application
         {
             app.currentFps = Math.floor(1000 * (app.frameCount - app.lastFrameCount) / (timeStampInMs - app.lastFrameTime));
         }
-        //footer.innerText = `${frameCount} ${Math.floor(timeStampInMs - startTime)} ${fps}/${maxFps}`;
-        app.footer.innerText = `${app.lastMouseX} ${app.lastMouseY} ${app.currentFps}/${app.maxFps}`;
+        app.footer.innerText = `${app.currentFps}/${app.maxFps}`;
         app.lastFrameTime = timeStampInMs;
         app.lastFrameCount = app.frameCount;
 
-        // check effects queue
+        app.doEffects();
+        app.horizon.update();
+        requestAnimationFrame(app.runLoop);  //setTimeout(app.runLoop, 1000 / 60)
+        app.focusTarget.focus();
+        app.frameCount++;
+    }
+
+    doEffects()
+    {
         let newQueue: Effect[][] = [];
         app.effectsQueue.forEach(effectChain =>
         {
@@ -142,9 +125,6 @@ export class Application
             }
         });
         app.effectsQueue = newQueue;
-        setTimeout(app.runLoop, 1000 / app.maxFps);
-        app.focusTarget.focus();
-        app.frameCount++;
     }
 
     resize()
@@ -160,25 +140,7 @@ export class Application
         // draw my own context menu!
         return false;
     }
-
-    keyPress(k: KeyboardEvent)
-    {
-        console.log(`{key pressed on canvas: ${k.key}}`)
-        if (k.key === "Enter")
-        {
-            //app.focusTarget = app.terminal.input;
-            //app.effectsQueue.push([new Effect(app.terminal.form, EffectEnum.moveTo, 20, { x: 0, y: 0 })]);
-
-        }
-    }
-
-    mouseMove(mouseEvent: MouseEvent)
-    {
-        app.lastMouseX = mouseEvent.x;
-        app.lastMouseY = mouseEvent.y;
-        //socket.send(JSON.stringify(new WebSocketMessage("mouseMove", `${lastMouseX},${lastMouseY}`)));
-    }
 }
 
 var app = new Application();
-app.start();
+app.runLoop();

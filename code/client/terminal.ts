@@ -12,6 +12,7 @@ export class Terminal
     showTerminal: boolean;
     form: HTMLFormElement;
     input: HTMLInputElement;
+    inputHidden: HTMLInputElement;
     inputMode: InputMode;
     prePrompt: HTMLSpanElement;
     postPrompt: HTMLSpanElement;
@@ -31,7 +32,7 @@ export class Terminal
         this.form.action = "command";
         this.form.style.background = "#000";
         this.form.style.padding = "3px";
-        this.form.style.position = "absolute";
+        this.form.style.position = "fixed";
         this.form.style.bottom = "0px";
         this.form.style.left = "0px";
         this.form.style.width = "90%";
@@ -69,8 +70,10 @@ export class Terminal
         this.input.style.borderWidth = "0";
         this.input.style.outline = "none";
         this.input.style.cursor = "crosshair";
-        this.input.onkeydown = (event) => { return this.onKeyboardEvent(event) };
-        this.input.onkeypress = (event) => { return this.onKeyboardEvent(event) };
+        //this.input.onkeydown = (event) => { return this.onKeyboardEvent(event) };
+        //this.input.onkeypress = (event) => { return this.onKeyboardEvent(event) };
+
+        this.inputHidden = document.createElement("input");
 
         let inputHistory = document.createElement("ul");
         inputHistory.style.listStyleType = "none";
@@ -83,27 +86,38 @@ export class Terminal
         div.appendChild(this.postPrompt);
         document.body.appendChild(this.form);
 
-
         this.webSocketConnect('ws://localhost:3001');
     }
 
-    onKeyboardEvent(event: KeyboardEvent): boolean
+    onKeyboardEvent = (event: KeyboardEvent): boolean =>
     {
-        console.log(event.key);
+        //console.log(event.key);
+        console.log(`keyboard event: ${event.key}`)
         if (event.key === "Tab")
         {
+            event.preventDefault();
             //let lastInputMode = this.toggleInputMode();
             // switch focus mode / hide terminal
             if (this.showTerminal === true)
             {
                 this.showTerminal = false;
-                this.app.effectsQueue.push([new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: -20 })]); // hide
+                this.app.effectsQueue.push([
+                    new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: -20 }),
+                    //new Effect(this.form, EffectEnum.makeInvisible)
+                ]); // hide
+                this.app.focusTarget = document.body;
+                this.input.blur();
             }
             else
             {
                 this.showTerminal = true;
-                this.app.effectsQueue.push([new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: 0 })]); // un-hide
+                this.app.effectsQueue.push([
+                    //new Effect(this.form, EffectEnum.makeVisible),
+                    new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: 0 })
+                ]); // un-hide
+                this.app.focusTarget = this.input;
             }
+            this.app.focusTarget.focus();
             return false;
         }
         else
