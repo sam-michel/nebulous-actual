@@ -70,10 +70,6 @@ export class Terminal
         this.input.style.borderWidth = "0";
         this.input.style.outline = "none";
         this.input.style.cursor = "crosshair";
-        //this.input.onkeydown = (event) => { return this.onKeyboardEvent(event) };
-        //this.input.onkeypress = (event) => { return this.onKeyboardEvent(event) };
-
-        this.inputHidden = document.createElement("input");
 
         let inputHistory = document.createElement("ul");
         inputHistory.style.listStyleType = "none";
@@ -89,32 +85,24 @@ export class Terminal
         this.webSocketConnect('ws://localhost:3001');
     }
 
-    onKeyboardEvent = (event: KeyboardEvent): boolean =>
+    keyboardEvent = (event: KeyboardEvent): boolean =>
     {
-        //console.log(event.key);
-        console.log(`keyboard event: ${event.key}`)
+        //console.log(`keyboard event: ${event.key}`)
         if (event.key === "Tab")
         {
-            event.preventDefault();
-            //let lastInputMode = this.toggleInputMode();
-            // switch focus mode / hide terminal
+            event.preventDefault(); // prevent Tab from switching focus
+            // toggle terminal focus
             if (this.showTerminal === true)
             {
                 this.showTerminal = false;
-                this.app.effectsQueue.push([
-                    new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: -20 }),
-                    //new Effect(this.form, EffectEnum.makeInvisible)
-                ]); // hide
+                this.app.effectsQueue.push([new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: -20 })]); // hide
                 this.app.focusTarget = document.body;
                 this.input.blur();
             }
             else
             {
                 this.showTerminal = true;
-                this.app.effectsQueue.push([
-                    //new Effect(this.form, EffectEnum.makeVisible),
-                    new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: 0 })
-                ]); // un-hide
+                this.app.effectsQueue.push([new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: 0 })]); // un-hide
                 this.app.focusTarget = this.input;
             }
             this.app.focusTarget.focus();
@@ -137,11 +125,7 @@ export class Terminal
     {
         if (this.input.value === "")
         {
-            // Do I want to use this to toggle command mode vs. chat mode OR terminal focus vs. canvas focus?
-            // If this isn't how I switch to command mode, then how do I?
-            // Tab should be used to switch focus. Enter shall be used to toggle command mode vs chat mode
             console.log("{empty input.value submitted}")
-            //this.app.focusTarget = this.app.canvas;
             let lastInputMode = this.toggleInputMode();
         }
         else
@@ -149,7 +133,7 @@ export class Terminal
             this.socket.send(JSON.stringify(new WebSocketMessage("command", this.input.value)));
             this.input.value = '';
         }
-        return false; // Prevent page from submitting.
+        return false; // prevent page from submitting
     }
 
     private toggleInputMode(): InputMode

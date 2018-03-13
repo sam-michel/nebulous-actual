@@ -37,25 +37,25 @@ export class Application
         this.horizon.draw();
 
         // display title
-        let titleText = document.createElement("label");
-        titleText.innerText = "nebulous / actual"
-        titleText.style.fontSize = "48pt";
-        titleText.style.color = "#009900";
-        titleText.style.position = "absolute";
-        titleText.style.top = "100px"; // center this vertically
-        titleText.style.left = "100px"; // center this horizontally
-        titleText.style.display = "none";
-        let fadeDuration = 150;
-        this.effectsQueue.push([
-            new Effect(titleText, EffectEnum.fadeIn, fadeDuration),
-            new Effect(titleText, EffectEnum.fadeOut, fadeDuration),
-            new Effect(titleText, EffectEnum.makeInvisible)
-        ]);
-        this.effectsQueue.push([
-            new Effect(titleText, EffectEnum.makeVisible),
-            new Effect(titleText, EffectEnum.moveTo, 2 * fadeDuration, 0, { x: window.innerWidth / 2, y: window.innerHeight / 2 })
-        ]);
-        document.body.appendChild(titleText);
+        //let titleText = document.createElement("label");
+        //titleText.innerText = "nebulous / actual"
+        //titleText.style.fontSize = "48pt";
+        //titleText.style.color = "#009900";
+        //titleText.style.position = "absolute";
+        //titleText.style.top = "100px"; // center this vertically
+        //titleText.style.left = "100px"; // center this horizontally
+        //titleText.style.display = "none";
+        //let fadeDuration = 150;
+        //this.effectsQueue.push([
+        //    new Effect(titleText, EffectEnum.fadeIn, fadeDuration),
+        //    new Effect(titleText, EffectEnum.fadeOut, fadeDuration),
+        //    new Effect(titleText, EffectEnum.makeInvisible)
+        //]);
+        //this.effectsQueue.push([
+        //    new Effect(titleText, EffectEnum.makeVisible),
+        //    new Effect(titleText, EffectEnum.moveTo, 2 * fadeDuration, 0, { x: window.innerWidth / 2, y: window.innerHeight / 2 })
+        //]);
+        //document.body.appendChild(titleText);
 
         this.terminal = new Terminal(this);
         this.focusTarget = this.terminal.input;
@@ -79,9 +79,9 @@ export class Application
 
         // scroll some init text when page loads...
 
-        window.onresize = this.resize;
-        window.addEventListener('keydown', this.terminal.onKeyboardEvent);
-        window.addEventListener('keypress', this.terminal.onKeyboardEvent);
+        window.addEventListener('resize', this.horizon.resize);
+        window.addEventListener('keydown', this.terminal.keyboardEvent);
+        window.addEventListener('keypress', this.terminal.keyboardEvent);
         window.oncontextmenu = this.contextMenu;
     }
 
@@ -125,14 +125,6 @@ export class Application
             }
         });
         app.effectsQueue = newQueue;
-    }
-
-    resize()
-    {
-        //app.canvas.width = window.innerWidth;
-        //app.canvas.height = window.innerHeight;
-        //let horizon = new Horizon(app.canvas);
-        //horizon.draw();
     }
 
     contextMenu()

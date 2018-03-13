@@ -1,30 +1,45 @@
-/***********************************************************************\
- * Uses layered canvases to render an animated horizon scene. *
-\***********************************************************************/
 
 import { Drawable } from './drawable';
 
+/* Uses layered canvases to render an animated horizon scene. */
 export class Horizon
 {
-    skyColor: string = "#f00"; // default = "#f00", "#3dd" = day blue
-    landSpeed = 1;
-
-
-    starContext: CanvasRenderingContext2D;
+    //#region constants
+    private readonly skyColor: string;
+    private readonly landSpeed: number;
+    private readonly starMax: number[];
+    private readonly starDensity: number;
+    private readonly starsToDrawPerUpdate: number;
+    //#endregion
+    //#region private properties
+    private starContextOnScreen: CanvasRenderingContext2D;
+    private starContextOffScreen: CanvasRenderingContext2D;
+    private starCount: number[];
     private skyContext: CanvasRenderingContext2D;
     private landContext: CanvasRenderingContext2D[];
     private offScreenContext: CanvasRenderingContext2D;
     private updateCount: number;
-    //time: number; // minute in the day 0 - 1440
+    //private time: number; // minute in the day 0 - 1440
+    //#endregion
 
     constructor()
     {
-        let element = document.body;
-        this.starContext = Horizon.newCanvas(element);
-        this.skyContext = Horizon.newCanvas(element);
-        this.landContext = [Horizon.newCanvas(element, 4000, 1000), Horizon.newCanvas(element)];
-        this.offScreenContext = Horizon.newCanvas(undefined, 4000, 1000);
+        // Initialize constants:
+        this.skyColor = "#f00";
+        this.landSpeed = 1;
+        this.starDensity = 2;
+        this.starMax = [50000 * this.starDensity, 2500 * this.starDensity, 100 * this.starDensity, 10 * this.starDensity, 1 * this.starDensity];
+        this.starsToDrawPerUpdate = 1000;
+
+        // Initialize privates:
+        this.starCount = [0, 0, 0, 0, 0];
         this.updateCount = 0;
+        this.starContextOnScreen = Horizon.newCanvas(document.body, window.innerWidth, window.innerHeight);
+        this.starContextOffScreen = Horizon.newCanvas();
+        this.skyContext = Horizon.newCanvas(document.body);
+        //this.landContext = [Horizon.newCanvas(document.body, 4000, 2000), Horizon.newCanvas(document.body, 4000, 2000), Horizon.newCanvas(document.body, 4000, 2000)];
+        this.landContext = [Horizon.newCanvas(document.body, 4000, 2000)];
+        this.offScreenContext = Horizon.newCanvas(undefined, 4000, 2000);
     }
 
     static newCanvas(element: HTMLElement = undefined, width: number = 2000, height: number = 2000): CanvasRenderingContext2D
@@ -42,179 +57,216 @@ export class Horizon
             canvas.style.position = "absolute";
             canvas.style.bottom = "0px";
             canvas.style.left = "0px"
-            canvas.onmousemove = Horizon.mouseMove;
-            canvas.onkeypress = Horizon.keyPress;
             document.body.appendChild(canvas);
         }
         return canvas.getContext("2d");
     }
 
-    /***********************************************************************\
-     * Called once per frame
-    \***********************************************************************/
-    update()
+    public resize = (event) =>
     {
+        this.starContextOnScreen.canvas.width = window.innerWidth;
+        this.starContextOnScreen.canvas.height = window.innerHeight;
+    }
+
+    /** Redraws horizon canvases as needed. Called once per frame. */
+    public update()
+    {
+        // draw more stars on starContextOffScreen unless we've reached the max number of stars
+        this.drawStars(this.starContextOffScreen);
+
+        // Move stars:
         let period = 4;
-        let speed = 1;
+        let speed = 1; // this is pointless while I'm using this.updateCount / period
         if (0 === this.updateCount % period)
         {
-            this.starContext.drawImage(this.starContext.canvas, 0, -speed);
-            this.starContext.drawImage(this.starContext.canvas, 0, this.starContext.canvas.height - speed);
+            let srcY = Math.floor(this.updateCount / period) % this.starContextOffScreen.canvas.height;
+            let w = this.starContextOnScreen.canvas.width;
+            let h = Math.min(this.starContextOnScreen.canvas.height, this.starContextOffScreen.canvas.height - srcY);
+            this.starContextOnScreen.drawImage(this.starContextOffScreen.canvas, 0, srcY, w, h, 0, 0, w, h);
+
+            // Check for wrap:
+            if (h < this.starContextOnScreen.canvas.height)
+            {
+                let h2 = this.starContextOnScreen.canvas.height - h;
+                this.starContextOnScreen.drawImage(this.starContextOffScreen.canvas, 0, 0, w, h2, 0, h, w, h2);
+            }
         }
 
+        // Move land:
         period = 4;
-        speed = this.landSpeed;
         if (0 === this.updateCount % period)
         {
-            // Draw translated land to off-screen canvas then swap on/off screen canvases:
-            this.offScreenContext.clearRect(0, 0, this.offScreenContext.canvas.width, this.offScreenContext.canvas.height);
-            this.offScreenContext.drawImage(this.landContext[0].canvas, -speed, 0);
-            this.offScreenContext.drawImage(this.landContext[0].canvas, 0, 0, speed, this.offScreenContext.canvas.height,
-                this.offScreenContext.canvas.width - speed, 0, speed, this.offScreenContext.canvas.height
-            );
-            this.landContext[0].clearRect(0, 0, this.landContext[0].canvas.width, this.landContext[0].canvas.height);
-            this.landContext[0].drawImage(this.offScreenContext.canvas, 0, 0);
+            for (let i = 0; i < this.landContext.length; i++)
+            {
+                // Draw translated land to off-screen canvas then swap on/off screen canvases:
+                speed = this.landSpeed * (i + 1) ** 2;
+                this.offScreenContext.clearRect(0, 0, this.offScreenContext.canvas.width, this.offScreenContext.canvas.height);
+                this.offScreenContext.drawImage(this.landContext[i].canvas, -speed, 0);
+                this.offScreenContext.drawImage(this.landContext[i].canvas, 0, 0, speed, this.offScreenContext.canvas.height,
+                    this.offScreenContext.canvas.width - speed, 0, speed, this.offScreenContext.canvas.height
+                );
+                this.landContext[i].clearRect(0, 0, this.landContext[i].canvas.width, this.landContext[i].canvas.height);
+                this.landContext[i].drawImage(this.offScreenContext.canvas, 0, 0);
+            }
         }
+
+        // Update sky:
+        // I want the sky color to fade between bounds based on the give "time"
+        // In this case time will simply be a value between 0 and 1 where 0 is one bound and 1 is the other.
+        let time = .5 * (1 + Math.sin(this.updateCount / 4000)); // slowly oscillate between 0 and 1
+        this.drawSky(this.skyContext, time);
+
 
         this.updateCount++;
-    }
-    static keyPress(k: KeyboardEvent)
-    {
-        console.log(`{key pressed on canvas: ${k.key}}`)
-        if (k.key === "Enter")
-        {
-            //app.focusTarget = app.terminal.input;
-            //app.effectsQueue.push([new Effect(app.terminal.form, EffectEnum.moveTo, 20, { x: 0, y: 0 })]);
-
-        }
-    }
-
-    static mouseMove(mouseEvent: MouseEvent): boolean
-    {
-        // mouse moved over canvas...
-        return true;
     }
 
     draw()
     {
-        //this.drawSpace(); this seems pointless, I can just draw a black box on the star layer
-        this.drawStars(this.starContext);
-        this.drawSky(this.skyContext);
-        this.drawLand(this.landContext[0]);
-        //this.drawLand2(this.landLayer);
+        //this.drawSky(this.skyContext);
+        this.drawLand(this.landContext);
     }
 
-    private drawSky(context: CanvasRenderingContext2D)
+    private drawSky(context: CanvasRenderingContext2D, time: number)
     {
-        let brightness = .45; // 0 - 1, .6 default
+        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
         let gradient = context.createLinearGradient(0, context.canvas.height, 0, context.canvas.height - window.innerHeight);
-        gradient.addColorStop(0, this.skyColor);
-        gradient.addColorStop(Math.max(0, brightness - .2), "rgba(255,0,0,.5)"); //"rgba(255,0,0,.5)"
-        gradient.addColorStop(Math.min(1, brightness + -.1), "rgba(255,153,0,.3)"); //"rgba(255,153,0,.3)"
-        gradient.addColorStop(Math.min(1, brightness + .2), "rgba(0,0,0,0)"); // "rgba(48,180,240,.5)" = sky blue
+        let y: number, r: number, g: number, b: number, a: number;
+
+        y = 0;
+        r = 255;
+        g = Math.floor(196 * time);
+        b = 0
+        a = 1;
+        gradient.addColorStop(y, `rgba(${r},${g},${b},${a})`);
+
+        y = Math.min(.8, time);
+        r = Math.floor(255 * (1 - time));
+        g = 0;
+        b = Math.floor(255 * time);
+        a = .7 + (.3 * time); // range from .5 - 1
+        gradient.addColorStop(y, `rgba(${r},${g},${b},${a})`);
+
+        y = Math.min(.9, time + .2);
+        r = Math.floor(255 * (1 - time));
+        g = Math.floor(153 * (1 - time));
+        b = Math.floor(255 * 5 * Math.max(0, time - .6));
+        a = time;
+        gradient.addColorStop(y, `rgba(${r},${g},${b},${a})`);
+
+        y = 1;
+        r = 0;
+        g = 0;
+        b = Math.min(255, Math.floor(255 * time));
+        a = time //.3 + (.7 * time);
+        gradient.addColorStop(y, `rgba(${r},${g},${b},${a})`);
+
         context.fillStyle = gradient;
         context.fillRect(0, 0, context.canvas.width, context.canvas.height);
     }
 
-    private drawLand(context: CanvasRenderingContext2D)
+    /** Draws a land layer for each given canvas context from back to front. */
+    private drawLand(contextArray: CanvasRenderingContext2D[])
     {
-        // I want to allow for multiple land layers to add depth for parallax scrolling
-        // land layers will be evenly vertically divided
-        // land layer colors will evenly range from darkest in the back to lightest in the front
-        //   - foregroundColor, backgroundColor
-        context.canvas.style.backgroundColor = "rgba(0,0,0,0)";
-
-        let yOffset = .77; // .77
-        let yDeviation = .2; // .1
-        let xMaxDelta = 15; // 20
-        let yMaxDelta = 15; // 5
-
-        let screenOffset = context.canvas.height - window.innerHeight;
-        let x = -10;
-        let y = screenOffset + yOffset * window.innerHeight;
-        let yInit = y;
-        let minY = screenOffset + (yOffset - yDeviation) * window.innerHeight;
-        let maxY = screenOffset + (yOffset + yDeviation) * window.innerHeight;
-
-        context.beginPath();
-        context.moveTo(x, y);
-
-        // generate horizon line:
-        do
+        for (let i = 0; i < contextArray.length; i++)
         {
-            x += Math.ceil(xMaxDelta * Math.random());
-            if (x >= context.canvas.width)
+            let context = contextArray[i];
+            context.canvas.style.backgroundColor = "rgba(0,0,0,0)";
+
+            let yOffset = .77 + (i * .05); // .77
+            let yDeviation = 1 / (i + 1); // .1
+            let xMaxDelta = 20 / (i + 1); // 20
+            let yMaxDelta = 5 / (i + 1); // 5
+
+            let screenOffset = context.canvas.height - window.innerHeight;
+            let x = -10;
+            let y = screenOffset + yOffset * window.innerHeight;
+            let yInit = y;
+            let minY = screenOffset + (yOffset - yDeviation) * window.innerHeight;
+            let maxY = screenOffset + (yOffset + yDeviation) * window.innerHeight;
+
+            context.beginPath();
+            context.moveTo(x, y);
+
+            // generate horizon line:
+            do
             {
-                y = yInit;
-            }
-            else
-            {
-                y += yMaxDelta - Math.floor((1 + yMaxDelta * 2) * Math.random()); // I want a value between -5 and 5 (inclusive)
-            }
-            y = Math.max(minY, Math.min(maxY, y));
-            context.lineTo(x, y);
-        } while (x < context.canvas.width);  // stop when right side is hit
+                x += Math.ceil(xMaxDelta * Math.random());
+                if (x >= context.canvas.width)
+                {
+                    y = yInit;
+                }
+                else
+                {
+                    y += yMaxDelta - Math.floor((1 + yMaxDelta * 2) * Math.random()); // I want a value between -5 and 5 (inclusive)
+                    //y = yInit + Math.floor(3 * Math.sin(x / 2)); // wavy
+                    //y = yInit; // flat
+                }
+                y = Math.max(minY, Math.min(maxY, y));
+                context.lineTo(x, y);
+            } while (x < context.canvas.width);  // stop when right side is hit
 
-        context.lineTo(x, context.canvas.height); // bottom right corner
-        context.lineTo(0, context.canvas.height); // bottom left corner
-        context.closePath();
-        context.fillStyle = "black"
-        context.fill();
+            context.lineTo(x, context.canvas.height); // bottom right corner
+            context.lineTo(0, context.canvas.height); // bottom left corner
+            context.closePath();
+            let lightness = i * .1;
+            let rgba = `rgba(${Math.floor(255 * lightness)},${Math.floor(191 * lightness)},${Math.floor(0 * lightness)},1)`;
+            console.log(rgba);
+            context.fillStyle = rgba;
+            context.fill();
 
-        // use a gradient to get an anti-aliasing/blurring effect on the horizon line:
-        let gradient = context.createLinearGradient(0, maxY, 0, minY);
-        gradient.addColorStop(0, "black");
-        gradient.addColorStop(1, "rgba(0,0,0,.5)");
-        context.strokeStyle = gradient;
-        context.lineWidth = 3; // 3
-        context.stroke();
-
-        //this.landImage.src = context.canvas.toDataURL('image/jpeg');
+            // use a gradient to get an anti-aliasing/blurring effect on the horizon line:
+            //let gradient = context.createLinearGradient(0, maxY, 0, minY);
+            //gradient.addColorStop(0, "black");
+            //gradient.addColorStop(1, "rgba(0,0,0,.5)");
+            //context.strokeStyle = gradient;
+            //context.lineWidth = 3; // 3
+            //context.stroke();
+        }
     }
 
+    /** Draws stars incrementally to allow for faster page loading. Smallest stars are drawn first. */
     private drawStars(context: CanvasRenderingContext2D)
     {
-        context.fillStyle = "black";
-        context.fillRect(0, 0, context.canvas.width, context.canvas.height);
-        // Stars should be drawn over a short duration so as not to block page load
-        // Stars need to be drawn on a background canvas so they don't get redrawn when foreground elements change (atmosphere light,
-        // land line movement, twinkling stars, etc).
-        // To allow for star movement I actually need two background canvases
-        //   - they both need to be bigger than the window,
-        //   - they should be arbitrarily large to avoid having to redraw stars on resize
-        //   - star movement will only be up/down for now (what about panning view...?)
+        // What about:
+        //  twinkling stars
+        //  meteor showers
 
-        // I want additional canvas layers to draw moving "stars", meteor showers, etc.
-        let starDensity = 2; // 4
-        let starSize = .5;
-        let redShift = .5;
-        let greenShift = .5;
-        let blueShift = .5;
-        let brightness = -.2;
-        this.drawStarLayer(context.canvas, redShift, greenShift, blueShift, brightness - .2, starSize, starDensity * 50000);
-        this.drawStarLayer(context.canvas, .1 + redShift, .1 + greenShift, .1 + blueShift, brightness + .0, 2 * starSize, starDensity * 2500);
-        this.drawStarLayer(context.canvas, .2 + redShift, .2 + greenShift, .2 + blueShift, brightness + .2, 3 * starSize, starDensity * 100);
-        this.drawStarLayer(context.canvas, .3 + redShift, .3 + greenShift, .3 + blueShift, brightness + .3, 4 * starSize, starDensity * 10);
-        this.drawStarLayer(context.canvas, .4 + redShift, .4 + greenShift, .4 + blueShift, brightness + .4, 5 * starSize, starDensity * 1);
-        //this.drawStarLayer(this.canvas, redShift, greenShift, blueShift, 1, 10 * starSize, 1); // draw a moon, need a radial gradient for this...
+        // Local constants: -- these should be factored out but horizon is getting pretty full -> time for another class
+        let baseRedShift = .5;
+        let baseGreenShift = .5;
+        let baseBlueShift = .5;
+        let baseBrightness = -.2;
+        let baseStarSize = .5;
 
-        // capture starCanvas as an image:
-        //this.starImage.src = context.canvas.toDataURL('image/jpeg');
-    }
-
-    private drawStarLayer(canvas: HTMLCanvasElement, redShift: number, greenShift: number, blueShift: number, brightnessWeight: number, radius: number, count: number)
-    {
-        for (let i = 0; i < count; i++)
+        if (this.starCount[0] === 0)
         {
-            let star = new Star(canvas, redShift, greenShift, blueShift, brightnessWeight, radius);
-            star.draw();
+            // first call to drawStars so draw space background:
+            context.fillStyle = "black";
+            context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+        }
+
+        let starsDrawn = 0;
+        for (let i = 0; i < this.starCount.length; i++)
+        {
+            if (this.starCount[i] < this.starMax[i])
+            {
+                for (; starsDrawn < Math.min(this.starsToDrawPerUpdate, this.starMax[i]); starsDrawn++)
+                {
+                    this.starCount[i]++;
+                    let redShift = baseRedShift + .1 * i;
+                    let greenShift = baseGreenShift + .1 * i;
+                    let blueShift = baseBlueShift + .1 * i;
+                    let brightness = baseBrightness + [-.2, .0, .2, .3, .4][i];
+                    let starSize = baseStarSize * (1 + i);
+                    let star = new Star(context.canvas, redShift, greenShift, blueShift, brightness, starSize);
+                    star.draw();
+                }
+            }
         }
     }
 }
 
-/**
- * A star.
- */
+/** A star. */
 class Star extends Drawable
 {
     radius: number; // 1px - 5px
