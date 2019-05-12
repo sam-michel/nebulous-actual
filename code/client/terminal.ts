@@ -64,7 +64,7 @@ export class Terminal
         this.input.style.width = "90%";
         this.input.style.fontFamily = "courier";
         this.input.style.backgroundColor = "#000";
-        this.input.style.color = "#00ff00";
+        this.input.style.color = "rgba(0,255,0,1)"; //"rgba(179,198,255,1)";
         this.input.style.position = "relative";
         this.input.style.border = "0px";
         this.input.style.borderWidth = "0";
@@ -75,6 +75,12 @@ export class Terminal
         inputHistory.style.listStyleType = "none";
         inputHistory.style.margin = "0";
         inputHistory.style.padding = "0";
+        inputHistory.style.color = "rgba(0,255,0,1)";
+        inputHistory.style.background = "rgba(0,0,0,0)";
+        inputHistory.style.padding = "3px";
+        inputHistory.style.position = "fixed";
+        inputHistory.style.bottom = "0px";
+        inputHistory.style.left = "0px";
 
         this.form.appendChild(div);
         div.appendChild(this.prePrompt);
@@ -88,14 +94,15 @@ export class Terminal
     keyboardEvent = (event: KeyboardEvent): boolean =>
     {
         //console.log(`keyboard event: ${event.key}`)
-        if (event.key === "Tab")
+
+        if (event.key === "`")
         {
-            event.preventDefault(); // prevent Tab from switching focus
+            event.preventDefault(); // do I need this for `?
             // toggle terminal focus
             if (this.showTerminal === true)
             {
                 this.showTerminal = false;
-                this.app.effectsQueue.push([new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: -20 })]); // hide
+                this.app.effectsQueue.push([new Effect(this.form, EffectEnum.moveTo, 20, 0, { x: 0, y: -25 })]); // hide
                 this.app.focusTarget = document.body;
                 this.input.blur();
             }
@@ -106,6 +113,11 @@ export class Terminal
                 this.app.focusTarget = this.input;
             }
             this.app.focusTarget.focus();
+            return false;
+        }
+        else if (event.key === "Tab")
+        {
+            event.preventDefault(); // prevent Tab from switching focus
             return false;
         }
         else
